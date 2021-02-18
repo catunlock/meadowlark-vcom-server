@@ -46,7 +46,7 @@ fn handle_client(stream: TcpStream) {
                 let response : [u8; 1024] = [0 as u8; 1024];
                 unsafe {USBDRVD_BulkRead(dev1, 0, response.as_ptr(), 1024)};
                 let rust_response: &CStr = unsafe { CStr::from_ptr(response.as_ptr() as *const i8 ) };
-                println!("Response: {}", rust_response.to_str().unwrap());
+                println!("Write: {}", rust_response.to_str().unwrap());
 
                 writer.write_all(&rust_response.to_bytes()).expect("Error sending response throught socket.");
                 writer.flush().expect("Error flushing the write buffer.");
@@ -77,8 +77,11 @@ fn main() {
 
     let listener = TcpListener::bind(format!("{}:{}", address, port)).expect("Error lisening at address.");
     println!("Listening at {}:{}", address, port);
-    // accept connections and process them serially
-    for stream in listener.incoming() {
-        handle_client(stream.expect("Error obtaining the TCP stream"));
+    loop {
+        // accept connections and process them serially
+        for stream in listener.incoming() {
+            handle_client(stream.expect("Error obtaining the TCP stream"));
+        }
     }
+
 }
