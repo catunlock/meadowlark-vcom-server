@@ -2,7 +2,7 @@ extern crate libc;
 use libc::{c_uchar, c_uint, c_ulong, c_ulonglong};
 use std::{ffi::{ CString, CStr}, io::{BufRead, Write}};
 use std::net::{TcpListener, TcpStream};
-use std::io::{BufReader, BufWriter};
+use std::io::{BufReader, LineWriter};
 
 #[link(name = "usbdrvd")]
 extern {
@@ -33,7 +33,7 @@ fn handle_client(stream: TcpStream) {
     println!("dev1: {}, pipe0: {}, pipe1: {}", dev1, pipe0, pipe1);
 
     let mut reader = BufReader::new(&stream);
-    let mut writer = BufWriter::new(&stream);
+    let mut writer = LineWriter::new(&stream);
     loop {
         let mut buf = String::with_capacity(1024);
         match reader.read_line(&mut buf) {
@@ -48,8 +48,8 @@ fn handle_client(stream: TcpStream) {
                 let rust_response: &CStr = unsafe { CStr::from_ptr(response.as_ptr() as *const i8 ) };
                 println!("Response: {}", rust_response.to_str().unwrap());
 
-                writer.write_all(&response).expect("Error sending response throught socket.");
-                writer.flush();
+                writer.write_all(&rust_response.to_bytes()).expect("Error sending response throught socket.");
+                writer.flush().expect("Error flushing the write buffer.");
             }
             Err(e) => {
                 println!("Error reading from the buffer: {}", e);
@@ -65,7 +65,7 @@ fn handle_client(stream: TcpStream) {
 
 fn main() {
     println!("Meadowlark Rust USB Virtual COM Port Server!");
-    let address = "127.0.0.1";
+    let address = "0.0.0.0";
     let port = "4001";
 
     let count = unsafe { USBDRVD_GetDevCount(5020) };
